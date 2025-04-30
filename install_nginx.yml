@@ -1,0 +1,37 @@
+---
+- name: install_nginx
+  gather_facts: false
+  hosts: webservers
+  vars:
+    ansible_ssh_user: user
+  become: yes
+
+  pre_tasks:
+    - name: Validating the ssh port is open and
+      wait_for:
+        host: "{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}"
+        port: 22
+        delay: 5
+        timeout: 300
+        state: started
+        search_regex: OpenSSH
+
+  tasks:
+  - name: Update repositories cache and install package
+    ansible.builtin.apt:
+      name: nginx
+      update_cache: yes
+  - name: Make sure a service unit is running
+    ansible.builtin.systemd_service:
+      enabled: yes
+      name: nginx
+
+  - name: Get Service Status
+    ansible.builtin.systemd:
+      name: "nginx"
+    register: pg_service_status
+
+  - debug:
+      var: pg_service_status.status.ActiveState
+
+
